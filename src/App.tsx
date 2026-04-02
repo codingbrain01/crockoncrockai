@@ -1,17 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
-import Groq from 'groq-sdk'
-
-const groq = new Groq({
-  apiKey: import.meta.env.VITE_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true,
-})
 
 interface Message {
   role: 'user' | 'assistant'
   content: string
 }
-
-const SYSTEM_PROMPT = `You are CrockonCrockAI, a highly intelligent AI assistant with exceptional programming expertise. You answer questions thoroughly, accurately, and helpfully. You excel at coding, debugging, explaining concepts, and solving complex problems. Be direct, smart, and genuinely useful.`
 
 const DAILY_TOKEN_LIMIT = 500000
 
@@ -37,39 +29,41 @@ function App() {
     setLoading(true)
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const stream = await (groq.chat.completions.create as any)({
-        model: 'deepseek-r1-distill-llama-70b',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          ...newMessages,
-        ],
-        stream: true,
-        stream_options: { include_usage: true },
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages }),
       })
 
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Something went wrong.')
+      }
+
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
       let assistantContent = ''
       setMessages(prev => [...prev, { role: 'assistant', content: '' }])
 
-      for await (const chunk of stream) {
-        const delta = chunk.choices[0]?.delta?.content || ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const delta = decoder.decode(value)
         assistantContent += delta
-        if (delta) {
-          setMessages(prev => [
-            ...prev.slice(0, -1),
-            { role: 'assistant', content: assistantContent },
-          ])
-        }
-        if (chunk.usage?.total_tokens) {
-          setTokensUsed(prev => prev + chunk.usage.total_tokens)
-        }
+        setMessages(prev => [
+          ...prev.slice(0, -1),
+          { role: 'assistant', content: assistantContent },
+        ])
       }
 
+      const inputChars = newMessages.reduce((acc, m) => acc + m.content.length, 0)
+      const estimatedTokens = Math.ceil((inputChars + assistantContent.length) / 4)
+      setTokensUsed(prev => prev + estimatedTokens)
       setRequestsUsed(prev => prev + 1)
-    } catch {
+    } catch (err) {
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: 'Something went wrong. Please try again.' },
+        { role: 'assistant', content: err instanceof Error ? err.message : 'Something went wrong. Please try again.' },
       ])
     } finally {
       setLoading(false)
