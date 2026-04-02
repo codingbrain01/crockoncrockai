@@ -14,6 +14,26 @@ function sanitizeInput(text: string): string {
     .slice(0, 4000) // max 4000 chars per message
 }
 
+function getTodayUTC(): string {
+  return new Date().toISOString().slice(0, 10) // "YYYY-MM-DD"
+}
+
+function getCounter(key: string): number {
+  const savedDate = localStorage.getItem(`${key}_date`)
+  const today = getTodayUTC()
+  if (savedDate !== today) {
+    localStorage.setItem(key, '0')
+    localStorage.setItem(`${key}_date`, today)
+    return 0
+  }
+  return Number(localStorage.getItem(key) ?? 0)
+}
+
+function setCounter(key: string, value: number): void {
+  localStorage.setItem(key, String(value))
+  localStorage.setItem(`${key}_date`, getTodayUTC())
+}
+
 function getVisitorId(): string {
   let id = localStorage.getItem('visitorId')
   if (!id) {
@@ -39,11 +59,11 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [tokensUsed, setTokensUsed] = useState(() => {
     const key = localStorage.getItem('ownerToken') ? 'ownerTokensUsed' : `visitorTokensUsed_${getVisitorId()}`
-    return Number(localStorage.getItem(key) ?? 0)
+    return getCounter(key)
   })
   const [requestsUsed, setRequestsUsed] = useState(() => {
     const key = localStorage.getItem('ownerToken') ? 'ownerRequestsUsed' : `visitorRequestsUsed_${getVisitorId()}`
-    return Number(localStorage.getItem(key) ?? 0)
+    return getCounter(key)
   })
   const [showSettings, setShowSettings] = useState(false)
   const [tokenInput, setTokenInput] = useState('')
@@ -106,13 +126,13 @@ function App() {
       setTokensUsed(prev => {
         const next = prev + estimatedTokens
         const key = ownerToken ? 'ownerTokensUsed' : `visitorTokensUsed_${getVisitorId()}`
-        localStorage.setItem(key, String(next))
+        setCounter(key, next)
         return next
       })
       setRequestsUsed(prev => {
         const next = prev + 1
         const key = ownerToken ? 'ownerRequestsUsed' : `visitorRequestsUsed_${getVisitorId()}`
-        localStorage.setItem(key, String(next))
+        setCounter(key, next)
         return next
       })
     } catch (err) {
@@ -153,8 +173,8 @@ function App() {
                     localStorage.removeItem('ownerToken')
                     setMessages([])
                     const vid = getVisitorId()
-                    setRequestsUsed(Number(localStorage.getItem(`visitorRequestsUsed_${vid}`) ?? 0))
-                    setTokensUsed(Number(localStorage.getItem(`visitorTokensUsed_${vid}`) ?? 0))
+                    setRequestsUsed(getCounter(`visitorRequestsUsed_${vid}`))
+                    setTokensUsed(getCounter(`visitorTokensUsed_${vid}`))
                     setShowSettings(false)
                   }}
                   className="text-xs text-red-400 hover:text-red-300 hover:underline transition-colors"
@@ -241,8 +261,8 @@ function App() {
                 } catch {
                   setMessages([])
                 }
-                setRequestsUsed(Number(localStorage.getItem('ownerRequestsUsed') ?? 0))
-                setTokensUsed(Number(localStorage.getItem('ownerTokensUsed') ?? 0))
+                setRequestsUsed(getCounter('ownerRequestsUsed'))
+                setTokensUsed(getCounter('ownerTokensUsed'))
                 setShowSettings(false)
               }}
               className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
