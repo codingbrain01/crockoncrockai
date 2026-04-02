@@ -10,7 +10,13 @@ const OWNER_REQUEST_LIMIT = 1000
 const VISITOR_REQUEST_LIMIT = 30
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('messages') ?? '[]')
+    } catch {
+      return []
+    }
+  })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [tokensUsed, setTokensUsed] = useState(() => Number(localStorage.getItem('tokensUsed') ?? 0))
@@ -21,6 +27,7 @@ function App() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    localStorage.setItem('messages', JSON.stringify(messages))
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -128,6 +135,20 @@ function App() {
           </div>
           <p className="text-xs text-gray-400">Powered by Llama 3.3 70B</p>
         </div>
+        {messages.length > 0 && (
+          <button
+            onClick={() => {
+              setMessages([])
+              localStorage.removeItem('messages')
+            }}
+            className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors"
+            title="Clear conversation"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+            </svg>
+          </button>
+        )}
         <button
           onClick={() => { setTokenInput(ownerToken); setShowSettings(s => !s) }}
           className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
