@@ -9,8 +9,9 @@ A personal AI chat assistant I built from scratch — fast, smart, and built esp
 - **AI Chat Interface** — Clean, distraction-free dark UI for focused conversations
 - **Real-time Streaming** — Responses stream token by token as the AI generates them
 - **Programming-focused** — System prompt tuned for coding, debugging, and technical explanations
-- **Persistent Conversations** — Each user's conversation is saved in `localStorage` and survives page refreshes
-- **Usage Tracker** — Live counters for requests and tokens with progress bars, persisted per user
+- **Persistent Conversations** — Each user's conversation is saved in `localStorage` and survives page refreshes; logging out as owner restores the visitor conversation
+- **Daily Counter Reset** — Request and token counters automatically reset at midnight UTC
+- **Usage Tracker** — Live counters for requests and tokens with progress bars, persisted and reset daily per user
 - **Owner Mode** — Gear icon opens a login panel; owner gets unlimited requests and a separate persistent conversation
 - **Owner Badge** — Green "Owner" badge in the header when logged in, with a visible Logout button
 - **Rate Limited for Visitors** — Visitors are limited to 30 requests/day to protect the API quota
@@ -77,9 +78,9 @@ crockoncrockai/
 - Streams the response back to the browser as chunked plain text
 
 ### Conversation Persistence
-- **Owner** — conversation saved as `ownerMessages` in `localStorage`; logging out clears the screen but keeps it saved; logging back in restores it
+- **Owner** — conversation saved as `ownerMessages`; logging out restores the visitor conversation; logging back in restores the owner conversation
 - **Visitors** — each browser gets a unique visitor ID on first visit; conversation saved as `visitorMessages_{id}`
-- **Counters** — requests and tokens tracked separately for owner (`ownerRequestsUsed`, `ownerTokensUsed`) and per visitor (`visitorRequestsUsed_{id}`, `visitorTokensUsed_{id}`)
+- **Counters** — tracked separately for owner and per visitor; each counter stores its date and auto-resets to 0 at midnight UTC
 
 ---
 

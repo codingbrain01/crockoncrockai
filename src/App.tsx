@@ -97,12 +97,12 @@ function App() {
 
       if (!response.ok) {
         const text = await response.text()
+        let message = 'Something went wrong. Please try again.'
         try {
           const err = JSON.parse(text)
-          throw new Error(err.error || 'Something went wrong.')
-        } catch {
-          throw new Error('Something went wrong. Please try again.')
-        }
+          if (err.error) message = err.error
+        } catch { /* not JSON */ }
+        throw new Error(message)
       }
 
       const reader = response.body!.getReader()
@@ -171,8 +171,12 @@ function App() {
                     setOwnerToken('')
                     setTokenInput('')
                     localStorage.removeItem('ownerToken')
-                    setMessages([])
                     const vid = getVisitorId()
+                    try {
+                      setMessages(JSON.parse(localStorage.getItem(`visitorMessages_${vid}`) ?? '[]'))
+                    } catch {
+                      setMessages([])
+                    }
                     setRequestsUsed(getCounter(`visitorRequestsUsed_${vid}`))
                     setTokensUsed(getCounter(`visitorTokensUsed_${vid}`))
                     setShowSettings(false)
