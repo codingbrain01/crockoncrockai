@@ -1,34 +1,35 @@
+import type { IncomingMessage, ServerResponse } from 'http'
 import Groq from 'groq-sdk'
-
-export const config = { runtime: 'nodejs', maxDuration: 30 }
 
 const SYSTEM_PROMPT = `You are CrockonCrockAI, a highly intelligent AI assistant with exceptional programming expertise. You answer questions thoroughly, accurately, and helpfully. You excel at coding, debugging, explaining concepts, and solving complex problems. Be direct, smart, and genuinely useful.`
 
 const RATE_LIMIT_PER_IP = 30
 const RESET_MS = 24 * 60 * 60 * 1000
-
 const ipMap = new Map<string, { count: number; resetAt: number }>()
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
+    res.statusCode = 405
+    res.end('Method not allowed')
+    return
   }
 
-  // Skip rate limiting if owner token matches
-  const ownerToken = req.headers.get('x-owner-token')
+  // Check owner token
+  const ownerToken = req.headers['x-owner-token'] as string | undefined
   const isOwner = ownerToken && ownerToken === process.env.OWNER_TOKEN
 
   if (!isOwner) {
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    const forwarded = req.headers['x-forwarded-for']
+    const ip = (Array.isArray(forwarded) ? forwarded[0] : forwarded?.split(',')[0])?.trim() ?? 'unknown'
     const now = Date.now()
     const entry = ipMap.get(ip)
 
     if (entry && now < entry.resetAt) {
       if (entry.count >= RATE_LIMIT_PER_IP) {
-        return new Response(
-          JSON.stringify({ error: 'Daily limit reached. You can send 30 messages per day. Try again tomorrow.' }),
-          { status: 429, headers: { 'Content-Type': 'application/json' } }
-        )
+        res.statusCode = 429
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ error: 'Daily limit reached. You can send 30 messages per day. Try again tomorrow.' }))
+        return
       }
       entry.count++
     } else {
@@ -36,18 +37,28 @@ export default async function handler(req: Request): Promise<Response> {
     }
   }
 
+  // Parse request body
   let messages: { role: string; content: string }[]
   try {
-    const body = await req.json()
-    messages = body.messages
-  } catch {
-    return new Response(JSON.stringify({ error: 'Invalid request body.' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
+    const raw = await new Promise<string>((resolve, reject) => {
+      let data = ''
+      req.on('data', chunk => { data += chunk })
+      req.on('end', () => resolve(data))
+      req.on('error', reject)
     })
+    messages = JSON.parse(raw).messages
+  } catch {
+    res.statusCode = 400
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ error: 'Invalid request body.' }))
+    return
   }
 
+  // Stream response from Groq
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.setHeader('Transfer-Encoding', 'chunked')
 
   const stream = await groq.chat.completions.create({
     model: 'deepseek-r1-distill-llama-70b',
@@ -55,18 +66,10 @@ export default async function handler(req: Request): Promise<Response> {
     stream: true,
   })
 
-  const encoder = new TextEncoder()
-  const readable = new ReadableStream({
-    async start(controller) {
-      for await (const chunk of stream) {
-        const text = chunk.choices[0]?.delta?.content ?? ''
-        if (text) controller.enqueue(encoder.encode(text))
-      }
-      controller.close()
-    },
-  })
+  for await (const chunk of stream) {
+    const text = chunk.choices[0]?.delta?.content ?? ''
+    if (text) res.write(text)
+  }
 
-  return new Response(readable, {
-    headers: { 'Content-Type': 'text/plain; charset=utf-8' },
-  })
+  res.end()
 }
