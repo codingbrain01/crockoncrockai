@@ -6,6 +6,8 @@ interface Message {
 }
 
 const DAILY_TOKEN_LIMIT = 500000
+const OWNER_REQUEST_LIMIT = 1000
+const VISITOR_REQUEST_LIMIT = 30
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([])
@@ -105,10 +107,23 @@ function App() {
           <div className="flex items-center gap-2">
             <h1 className="font-semibold text-white">CrockonCrockAI</h1>
             {ownerToken && (
-              <span className="flex items-center gap-1 bg-green-500/20 text-green-400 text-xs font-medium px-2 py-0.5 rounded-full border border-green-500/30">
-                <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
-                Owner
-              </span>
+              <>
+                <span className="flex items-center gap-1 bg-green-500/20 text-green-400 text-xs font-medium px-2 py-0.5 rounded-full border border-green-500/30">
+                  <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                  Owner
+                </span>
+                <button
+                  onClick={() => {
+                    setOwnerToken('')
+                    setTokenInput('')
+                    localStorage.removeItem('ownerToken')
+                    setShowSettings(false)
+                  }}
+                  className="text-xs text-red-400 hover:text-red-300 hover:underline transition-colors"
+                >
+                  Logout
+                </button>
+              </>
             )}
           </div>
           <p className="text-xs text-gray-400">Powered by Llama 3.3 70B</p>
@@ -126,11 +141,13 @@ function App() {
           <div className="text-right flex flex-col gap-1">
             <div>
               <p className="text-xs text-gray-400">Requests today</p>
-              <p className="text-xs font-medium text-indigo-400">{requestsUsed} / 1,000</p>
+              <p className="text-xs font-medium text-indigo-400">
+                {requestsUsed} / {ownerToken ? OWNER_REQUEST_LIMIT.toLocaleString() : VISITOR_REQUEST_LIMIT}
+              </p>
               <div className="w-28 h-1 bg-gray-700 rounded-full mt-1">
                 <div
                   className="h-1 bg-indigo-500 rounded-full transition-all"
-                  style={{ width: `${Math.min((requestsUsed / 1000) * 100, 100)}%` }}
+                  style={{ width: `${Math.min((requestsUsed / (ownerToken ? OWNER_REQUEST_LIMIT : VISITOR_REQUEST_LIMIT)) * 100, 100)}%` }}
                 />
               </div>
             </div>
@@ -172,19 +189,6 @@ function App() {
             >
               Save
             </button>
-            {ownerToken && (
-              <button
-                onClick={() => {
-                  setOwnerToken('')
-                  setTokenInput('')
-                  localStorage.removeItem('ownerToken')
-                  setShowSettings(false)
-                }}
-                className="bg-gray-700 hover:bg-gray-600 text-white rounded-lg px-4 py-2 text-sm transition-colors"
-              >
-                Clear
-              </button>
-            )}
           </div>
           {ownerToken && (
             <p className="text-xs text-green-400 mt-2">Active — rate limit bypassed. You are logged in as owner.</p>
