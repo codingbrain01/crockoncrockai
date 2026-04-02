@@ -1,17 +1,15 @@
 # CrockonCrockAI
 
-A smart, fast AI chat assistant with exceptional programming expertise — built with React, TypeScript, and powered by DeepSeek-R1 via Groq's free API.
+A personal AI chat assistant I built — smart, fast, and especially strong at programming. Powered by DeepSeek-R1 running on Groq's inference platform.
 
 ---
 
-## Features
+## What It Does
 
-- **AI Chat Interface** — Clean, modern dark-themed chat UI
-- **DeepSeek-R1 Powered** — A reasoning model that thinks step by step before answering
-- **Streaming Responses** — Text appears in real time as the AI generates it
-- **Usage Tracker** — Live counters for daily requests and tokens used with progress bars
-- **Keyboard Shortcuts** — Press `Enter` to send, `Shift+Enter` for a new line
-- **Conversation Memory** — Full chat history is maintained within each session
+- Chat with an AI that's great at coding, debugging, and explaining technical concepts
+- Responses stream in real time as the AI generates them
+- Tracks how many requests and tokens you've used today
+- Clean dark UI, simple and focused
 
 ---
 
@@ -19,24 +17,32 @@ A smart, fast AI chat assistant with exceptional programming expertise — built
 
 | Technology | Purpose |
 |---|---|
-| React 19 + TypeScript | Frontend framework |
-| Vite | Build tool and dev server |
+| React 19 + TypeScript | Frontend |
+| Vite | Build tool |
 | Tailwind CSS v4 | Styling |
-| Groq SDK | API client for AI inference |
-| DeepSeek-R1 (70B) | AI model via Groq |
+| Groq SDK | AI inference |
+| DeepSeek-R1 (70B) | The AI model |
+| Vercel | Hosting + serverless API |
 
 ---
 
-## Getting Started
+## How I Built It
+
+I wanted a personal AI assistant I could use for programming without hitting usage limits or paying a subscription. I chose Groq's free API because of its generous daily limits and fast inference speed — responses feel near-instant compared to most alternatives.
+
+The API key is protected server-side via a Vercel Edge function so it's never exposed in the browser. I also added per-IP rate limiting so the public demo doesn't get abused.
+
+---
+
+## Running It Locally
 
 ### Prerequisites
-
 - Node.js 18+
 - A free [Groq API key](https://console.groq.com)
 
-### Installation
+### Steps
 
-1. **Clone the repository**
+1. **Clone the repo**
    ```bash
    git clone https://github.com/codingbrain01/crockoncrockai.git
    cd crockoncrockai
@@ -47,36 +53,39 @@ A smart, fast AI chat assistant with exceptional programming expertise — built
    npm install
    ```
 
-3. **Set up your API key**
-
-   Create a `.env` file in the root of the project:
+3. **Create a `.env` file**
    ```
    VITE_GROQ_API_KEY=your_groq_api_key_here
    ```
 
-   > Get your free API key at [console.groq.com](https://console.groq.com)
-
-4. **Start the development server**
+4. **Start the dev server**
    ```bash
    npm run dev
    ```
 
-5. Open **http://localhost:5173** in your browser
+5. Open **http://localhost:5173**
+
+---
+
+## Deploying to Vercel
+
+1. Import the repo at [vercel.com](https://vercel.com)
+2. Add environment variable: `GROQ_API_KEY` = your Groq API key
+3. Deploy
+
+> Note: Use `GROQ_API_KEY` (not `VITE_GROQ_API_KEY`) for Vercel — the API key stays server-side.
 
 ---
 
 ## Usage Limits (Groq Free Tier)
 
-CrockonCrockAI runs on Groq's free tier. Limits reset daily and per minute:
-
 | Limit | Amount | Resets |
 |---|---|---|
-| Requests per day | 1,000 | Every 24 hours (midnight UTC) |
+| Requests per day | 1,000 | Midnight UTC |
 | Requests per minute | 30 | Every 60 seconds |
-| Tokens per day | 500,000 | Every 24 hours |
-| Tokens per minute | 6,000 | Every 60 seconds |
+| Tokens per day | 500,000 | Midnight UTC |
 
-The app displays your current usage in the header after your first message.
+Public visitors are limited to **30 requests per day** to protect the quota.
 
 ---
 
@@ -84,38 +93,17 @@ The app displays your current usage in the header after your first message.
 
 ```
 crockoncrockai/
+├── api/
+│   └── chat.ts        # Vercel Edge function (proxies Groq, rate limiting)
 ├── public/
-│   ├── favicon.svg
-│   └── icons.svg
 ├── src/
-│   ├── App.tsx        # Main chat interface
-│   ├── main.tsx       # App entry point
-│   └── index.css      # Global styles (Tailwind)
+│   ├── App.tsx        # Chat UI
+│   ├── main.tsx
+│   └── index.css
 ├── .env               # API key (not committed)
-├── .gitignore
-├── index.html
+├── vercel.json
 └── package.json
 ```
-
----
-
-## Environment Variables
-
-| Variable | Description |
-|---|---|
-| `VITE_GROQ_API_KEY` | Your Groq API key |
-
-> **Never commit your `.env` file.** It is already listed in `.gitignore`.
-
----
-
-## Build for Production
-
-```bash
-npm run build
-```
-
-Output is in the `dist/` folder. Deploy to any static hosting service (Vercel, Netlify, GitHub Pages, etc.).
 
 ---
 
