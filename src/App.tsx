@@ -30,8 +30,14 @@ function App() {
   })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [tokensUsed, setTokensUsed] = useState(() => Number(localStorage.getItem('tokensUsed') ?? 0))
-  const [requestsUsed, setRequestsUsed] = useState(() => Number(localStorage.getItem('requestsUsed') ?? 0))
+  const [tokensUsed, setTokensUsed] = useState(() => {
+    const key = localStorage.getItem('ownerToken') ? 'ownerTokensUsed' : `visitorTokensUsed_${getVisitorId()}`
+    return Number(localStorage.getItem(key) ?? 0)
+  })
+  const [requestsUsed, setRequestsUsed] = useState(() => {
+    const key = localStorage.getItem('ownerToken') ? 'ownerRequestsUsed' : `visitorRequestsUsed_${getVisitorId()}`
+    return Number(localStorage.getItem(key) ?? 0)
+  })
   const [showSettings, setShowSettings] = useState(false)
   const [tokenInput, setTokenInput] = useState('')
   const [ownerToken, setOwnerToken] = useState(() => localStorage.getItem('ownerToken') ?? '')
@@ -92,12 +98,14 @@ function App() {
       const estimatedTokens = Math.ceil((inputChars + assistantContent.length) / 4)
       setTokensUsed(prev => {
         const next = prev + estimatedTokens
-        localStorage.setItem('tokensUsed', String(next))
+        const key = ownerToken ? 'ownerTokensUsed' : `visitorTokensUsed_${getVisitorId()}`
+        localStorage.setItem(key, String(next))
         return next
       })
       setRequestsUsed(prev => {
         const next = prev + 1
-        localStorage.setItem('requestsUsed', String(next))
+        const key = ownerToken ? 'ownerRequestsUsed' : `visitorRequestsUsed_${getVisitorId()}`
+        localStorage.setItem(key, String(next))
         return next
       })
     } catch (err) {
@@ -137,6 +145,9 @@ function App() {
                     setTokenInput('')
                     localStorage.removeItem('ownerToken')
                     setMessages([])
+                    const vid = getVisitorId()
+                    setRequestsUsed(Number(localStorage.getItem(`visitorRequestsUsed_${vid}`) ?? 0))
+                    setTokensUsed(Number(localStorage.getItem(`visitorTokensUsed_${vid}`) ?? 0))
                     setShowSettings(false)
                   }}
                   className="text-xs text-red-400 hover:text-red-300 hover:underline transition-colors"
@@ -223,6 +234,8 @@ function App() {
                 } catch {
                   setMessages([])
                 }
+                setRequestsUsed(Number(localStorage.getItem('ownerRequestsUsed') ?? 0))
+                setTokensUsed(Number(localStorage.getItem('ownerTokensUsed') ?? 0))
                 setShowSettings(false)
               }}
               className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
