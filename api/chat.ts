@@ -52,7 +52,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   // Parse request body
-  let messages: { role: string; content: string }[]
+  let messages: { role: 'user' | 'assistant'; content: string }[]
   try {
     const raw = await new Promise<string>((resolve, reject) => {
       let data = ''
@@ -65,7 +65,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     messages = parsed.messages
       .slice(-MAX_MESSAGES)
-      .filter((m: unknown) =>
+      .filter((m: unknown): m is { role: 'user' | 'assistant'; content: string } =>
         m !== null &&
         typeof m === 'object' &&
         'role' in (m as object) &&
@@ -73,7 +73,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
         ['user', 'assistant'].includes((m as { role: string }).role) &&
         typeof (m as { content: unknown }).content === 'string'
       )
-      .map((m: { role: string; content: string }) => ({
+      .map((m: { role: 'user' | 'assistant'; content: string }) => ({
         role: m.role,
         content: sanitize(m.content),
       }))

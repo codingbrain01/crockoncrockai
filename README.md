@@ -14,7 +14,7 @@ A personal AI chat assistant I built from scratch — fast, smart, and built esp
 - **Owner Mode** — Gear icon opens a login panel; owner gets unlimited requests and a separate persistent conversation
 - **Owner Badge** — Green "Owner" badge in the header when logged in, with a visible Logout button
 - **Rate Limited for Visitors** — Visitors are limited to 30 requests/day to protect the API quota
-- **API Key Protected** — Key never touches the browser; all Groq calls go through a server-side function
+- **API Key Protected** — Key never touches the browser; all Groq calls go through a server-side Node.js function
 - **Input Sanitization** — Messages are sanitized on both frontend and backend before being processed
 - **Keyboard Shortcuts** — `Enter` to send, `Shift+Enter` for a new line
 
@@ -69,11 +69,12 @@ crockoncrockai/
 - Owner and visitor conversations, request counts, and token counts are all stored separately
 
 ### Backend (`api/chat.ts`)
+- Runs as a **Vercel Node.js serverless function** (30s max duration)
 - Validates and sanitizes all incoming messages (strips control chars, caps at 4,000 chars, max 50 messages)
 - Checks `x-owner-token` header — if it matches `OWNER_TOKEN` env var, skips rate limiting
 - Otherwise enforces **30 requests per IP per day** using an in-memory map
 - Forwards the request to Groq using the server-side `GROQ_API_KEY`
-- Streams the response back to the browser as plain text
+- Streams the response back to the browser as chunked plain text
 
 ### Conversation Persistence
 - **Owner** — conversation saved as `ownerMessages` in `localStorage`; logging out clears the screen but keeps it saved; logging back in restores it
