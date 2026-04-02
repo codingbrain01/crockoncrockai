@@ -8,6 +8,8 @@ const RESET_MS = 24 * 60 * 60 * 1000
 const ipMap = new Map<string, { count: number; resetAt: number }>()
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  console.log('[chat] request received', req.method)
+
   if (req.method !== 'POST') {
     res.statusCode = 405
     res.end('Method not allowed')
@@ -17,6 +19,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   // Check owner token
   const ownerToken = req.headers['x-owner-token'] as string | undefined
   const isOwner = ownerToken && ownerToken === process.env.OWNER_TOKEN
+  console.log('[chat] isOwner:', isOwner, '| OWNER_TOKEN set:', !!process.env.OWNER_TOKEN, '| GROQ_API_KEY set:', !!process.env.GROQ_API_KEY)
 
   if (!isOwner) {
     const forwarded = req.headers['x-forwarded-for']
@@ -26,6 +29,7 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 
     if (entry && now < entry.resetAt) {
       if (entry.count >= RATE_LIMIT_PER_IP) {
+        console.log('[chat] rate limit hit for ip:', ip)
         res.statusCode = 429
         res.setHeader('Content-Type', 'application/json')
         res.end(JSON.stringify({ error: 'Daily limit reached. You can send 30 messages per day. Try again tomorrow.' }))
@@ -47,7 +51,9 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       req.on('error', reject)
     })
     messages = JSON.parse(raw).messages
-  } catch {
+    console.log('[chat] parsed messages count:', messages.length)
+  } catch (e) {
+    console.error('[chat] body parse error:', e)
     res.statusCode = 400
     res.setHeader('Content-Type', 'application/json')
     res.end(JSON.stringify({ error: 'Invalid request body.' }))
@@ -55,20 +61,33 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   }
 
   // Stream response from Groq
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
+  console.log('[chat] calling Groq...')
+  try {
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-  res.setHeader('Transfer-Encoding', 'chunked')
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.setHeader('Transfer-Encoding', 'chunked')
 
-  const stream = await groq.chat.completions.create({
-    model: 'deepseek-r1-distill-llama-70b',
-    messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
-    stream: true,
-  })
+    const stream = await groq.chat.completions.create({
+      model: 'deepseek-r1-distill-llama-70b',
+      messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...messages],
+      stream: true,
+    })
 
-  for await (const chunk of stream) {
-    const text = chunk.choices[0]?.delta?.content ?? ''
-    if (text) res.write(text)
+    console.log('[chat] stream started')
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content ?? ''
+      if (text) res.write(text)
+    }
+    console.log('[chat] stream complete')
+  } catch (e) {
+    console.error('[chat] Groq error:', e)
+    if (!res.headersSent) {
+      res.statusCode = 500
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ error: 'AI request failed. Please try again.' }))
+    }
+    return
   }
 
   res.end()
