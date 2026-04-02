@@ -11,8 +11,10 @@ const VISITOR_REQUEST_LIMIT = 30
 
 function App() {
   const [messages, setMessages] = useState<Message[]>(() => {
+    const token = localStorage.getItem('ownerToken')
+    if (!token) return []
     try {
-      return JSON.parse(localStorage.getItem('messages') ?? '[]')
+      return JSON.parse(localStorage.getItem('ownerMessages') ?? '[]')
     } catch {
       return []
     }
@@ -27,9 +29,9 @@ function App() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    localStorage.setItem('messages', JSON.stringify(messages))
+    if (ownerToken) localStorage.setItem('ownerMessages', JSON.stringify(messages))
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, ownerToken])
 
   async function sendMessage() {
     if (!input.trim() || loading) return
@@ -124,6 +126,7 @@ function App() {
                     setOwnerToken('')
                     setTokenInput('')
                     localStorage.removeItem('ownerToken')
+                    setMessages([])
                     setShowSettings(false)
                   }}
                   className="text-xs text-red-400 hover:text-red-300 hover:underline transition-colors"
@@ -139,7 +142,7 @@ function App() {
           <button
             onClick={() => {
               setMessages([])
-              localStorage.removeItem('messages')
+              localStorage.removeItem('ownerMessages')
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors"
             title="Clear conversation"
@@ -204,11 +207,16 @@ function App() {
               onClick={() => {
                 setOwnerToken(tokenInput)
                 localStorage.setItem('ownerToken', tokenInput)
+                try {
+                  setMessages(JSON.parse(localStorage.getItem('ownerMessages') ?? '[]'))
+                } catch {
+                  setMessages([])
+                }
                 setShowSettings(false)
               }}
               className="bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
-              Save
+              Login
             </button>
           </div>
           {ownerToken && (
