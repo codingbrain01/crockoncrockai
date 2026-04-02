@@ -1,6 +1,6 @@
 import Groq from 'groq-sdk'
 
-export const config = { runtime: 'edge' }
+export const config = { runtime: 'nodejs', maxDuration: 30 }
 
 const SYSTEM_PROMPT = `You are CrockonCrockAI, a highly intelligent AI assistant with exceptional programming expertise. You answer questions thoroughly, accurately, and helpfully. You excel at coding, debugging, explaining concepts, and solving complex problems. Be direct, smart, and genuinely useful.`
 

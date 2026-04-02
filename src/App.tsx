@@ -42,8 +42,13 @@ function App() {
       })
 
       if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Something went wrong.')
+        const text = await response.text()
+        try {
+          const err = JSON.parse(text)
+          throw new Error(err.error || 'Something went wrong.')
+        } catch {
+          throw new Error('Something went wrong. Please try again.')
+        }
       }
 
       const reader = response.body!.getReader()
