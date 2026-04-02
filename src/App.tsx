@@ -6,15 +6,24 @@ interface Message {
 }
 
 const DAILY_TOKEN_LIMIT = 500000
+
+function getVisitorId(): string {
+  let id = localStorage.getItem('visitorId')
+  if (!id) {
+    id = crypto.randomUUID()
+    localStorage.setItem('visitorId', id)
+  }
+  return id
+}
 const OWNER_REQUEST_LIMIT = 1000
 const VISITOR_REQUEST_LIMIT = 30
 
 function App() {
   const [messages, setMessages] = useState<Message[]>(() => {
     const token = localStorage.getItem('ownerToken')
-    if (!token) return []
+    const key = token ? 'ownerMessages' : `visitorMessages_${getVisitorId()}`
     try {
-      return JSON.parse(localStorage.getItem('ownerMessages') ?? '[]')
+      return JSON.parse(localStorage.getItem(key) ?? '[]')
     } catch {
       return []
     }
@@ -29,7 +38,8 @@ function App() {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (ownerToken) localStorage.setItem('ownerMessages', JSON.stringify(messages))
+    const key = ownerToken ? 'ownerMessages' : `visitorMessages_${getVisitorId()}`
+    localStorage.setItem(key, JSON.stringify(messages))
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, ownerToken])
 
@@ -141,8 +151,9 @@ function App() {
         {messages.length > 0 && (
           <button
             onClick={() => {
+              const key = ownerToken ? 'ownerMessages' : `visitorMessages_${getVisitorId()}`
               setMessages([])
-              localStorage.removeItem('ownerMessages')
+              localStorage.removeItem(key)
             }}
             className="p-2 rounded-lg text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors"
             title="Clear conversation"
