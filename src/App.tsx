@@ -95,7 +95,7 @@ function App() {
         <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-sm">C</div>
         <div className="flex-1">
           <h1 className="font-semibold text-white">CrockonCrockAI</h1>
-          <p className="text-xs text-gray-400">Powered by DeepSeek-R1</p>
+          <p className="text-xs text-gray-400">Powered by Llama 3.3 70B</p>
         </div>
         <button
           onClick={() => { setTokenInput(ownerToken); setShowSettings(s => !s) }}
