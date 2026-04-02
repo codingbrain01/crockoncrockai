@@ -62,6 +62,7 @@ crockoncrockai/
 - If an owner token is set in `localStorage`, it's sent as the `x-owner-token` header
 - Reads the streaming response using the browser's `ReadableStream` API
 - Estimates token usage (~4 characters per token) and displays it in the header
+- Token and request counters are saved in `localStorage` — they persist across page refreshes for every user individually
 
 ### Backend (`api/chat.ts`)
 - Runs as a **Vercel Edge Function**
@@ -146,7 +147,7 @@ To remove it, open the settings panel and click **Clear**.
 | Tokens per day | 500,000 | Midnight UTC |
 | Tokens per minute | 6,000 | Every 60 seconds |
 
-Public visitors are further limited to **30 requests/day per IP** by the Edge function.
+Public visitors are further limited to **30 requests/day per IP** by the serverless function. Each visitor's usage counter is tracked in their own browser `localStorage` and persists across page refreshes.
 
 ---
 

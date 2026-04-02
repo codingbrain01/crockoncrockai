@@ -11,8 +11,8 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [tokensUsed, setTokensUsed] = useState(0)
-  const [requestsUsed, setRequestsUsed] = useState(0)
+  const [tokensUsed, setTokensUsed] = useState(() => Number(localStorage.getItem('tokensUsed') ?? 0))
+  const [requestsUsed, setRequestsUsed] = useState(() => Number(localStorage.getItem('requestsUsed') ?? 0))
   const [showSettings, setShowSettings] = useState(false)
   const [tokenInput, setTokenInput] = useState('')
   const [ownerToken, setOwnerToken] = useState(() => localStorage.getItem('ownerToken') ?? '')
@@ -69,8 +69,16 @@ function App() {
 
       const inputChars = newMessages.reduce((acc, m) => acc + m.content.length, 0)
       const estimatedTokens = Math.ceil((inputChars + assistantContent.length) / 4)
-      setTokensUsed(prev => prev + estimatedTokens)
-      setRequestsUsed(prev => prev + 1)
+      setTokensUsed(prev => {
+        const next = prev + estimatedTokens
+        localStorage.setItem('tokensUsed', String(next))
+        return next
+      })
+      setRequestsUsed(prev => {
+        const next = prev + 1
+        localStorage.setItem('requestsUsed', String(next))
+        return next
+      })
     } catch (err) {
       setMessages(prev => [
         ...prev,
