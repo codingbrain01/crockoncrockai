@@ -102,7 +102,15 @@ function App() {
       <header className="flex items-center gap-3 px-6 py-4 border-b border-gray-800 bg-gray-900">
         <div className="w-8 h-8 rounded-full bg-indigo-500 flex items-center justify-center font-bold text-sm">C</div>
         <div className="flex-1">
-          <h1 className="font-semibold text-white">CrockonCrockAI</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-semibold text-white">CrockonCrockAI</h1>
+            {ownerToken && (
+              <span className="flex items-center gap-1 bg-green-500/20 text-green-400 text-xs font-medium px-2 py-0.5 rounded-full border border-green-500/30">
+                <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                Owner
+              </span>
+            )}
+          </div>
           <p className="text-xs text-gray-400">Powered by Llama 3.3 70B</p>
         </div>
         <button
@@ -179,7 +187,7 @@ function App() {
             )}
           </div>
           {ownerToken && (
-            <p className="text-xs text-green-400 mt-2">Owner token active — rate limit bypassed</p>
+            <p className="text-xs text-green-400 mt-2">Active — rate limit bypassed. You are logged in as owner.</p>
           )}
         </div>
       )}
