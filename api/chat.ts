@@ -14,21 +14,26 @@ export default async function handler(req: Request): Promise<Response> {
     return new Response('Method not allowed', { status: 405 })
   }
 
-  // Rate limiting per IP
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
-  const now = Date.now()
-  const entry = ipMap.get(ip)
+  // Skip rate limiting if owner token matches
+  const ownerToken = req.headers.get('x-owner-token')
+  const isOwner = ownerToken && ownerToken === process.env.OWNER_TOKEN
 
-  if (entry && now < entry.resetAt) {
-    if (entry.count >= RATE_LIMIT_PER_IP) {
-      return new Response(
-        JSON.stringify({ error: 'Daily limit reached. You can send 30 messages per day. Try again tomorrow.' }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } }
-      )
+  if (!isOwner) {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    const now = Date.now()
+    const entry = ipMap.get(ip)
+
+    if (entry && now < entry.resetAt) {
+      if (entry.count >= RATE_LIMIT_PER_IP) {
+        return new Response(
+          JSON.stringify({ error: 'Daily limit reached. You can send 30 messages per day. Try again tomorrow.' }),
+          { status: 429, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
+      entry.count++
+    } else {
+      ipMap.set(ip, { count: 1, resetAt: now + RESET_MS })
     }
-    entry.count++
-  } else {
-    ipMap.set(ip, { count: 1, resetAt: now + RESET_MS })
   }
 
   let messages: { role: string; content: string }[]

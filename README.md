@@ -70,10 +70,22 @@ The API key is protected server-side via a Vercel Edge function so it's never ex
 ## Deploying to Vercel
 
 1. Import the repo at [vercel.com](https://vercel.com)
-2. Add environment variable: `GROQ_API_KEY` = your Groq API key
+2. Add these environment variables in Vercel:
+   - `GROQ_API_KEY` — your Groq API key
+   - `OWNER_TOKEN` — a secret password you choose (lets you bypass the rate limit)
 3. Deploy
 
 > Note: Use `GROQ_API_KEY` (not `VITE_GROQ_API_KEY`) for Vercel — the API key stays server-side.
+
+## Owner Access (Bypassing Rate Limits)
+
+The public is limited to 30 requests per day. To get unlimited access as the owner:
+
+1. Click the **gear icon** in the top-right of the header
+2. Enter the `OWNER_TOKEN` value you set in Vercel
+3. Click **Save** — stored in your browser, active immediately
+
+Your token is saved in `localStorage` so you only need to enter it once per device/browser.
 
 ---
 
