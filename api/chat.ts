@@ -3,6 +3,16 @@ import Groq from 'groq-sdk'
 
 const SYSTEM_PROMPT = `You are CrockonCrockAI, a highly intelligent AI assistant with exceptional programming expertise. You answer questions thoroughly, accurately, and helpfully. You excel at coding, debugging, explaining concepts, and solving complex problems. Be direct, smart, and genuinely useful.`
 
+const MAX_MESSAGE_LENGTH = 4000
+const MAX_MESSAGES = 50
+
+function sanitize(text: string): string {
+  return text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, MAX_MESSAGE_LENGTH)
+}
+
 const RATE_LIMIT_PER_IP = 30
 const RESET_MS = 24 * 60 * 60 * 1000
 const ipMap = new Map<string, { count: number; resetAt: number }>()
@@ -50,7 +60,24 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       req.on('end', () => resolve(data))
       req.on('error', reject)
     })
-    messages = JSON.parse(raw).messages
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed.messages)) throw new Error('messages must be an array')
+
+    messages = parsed.messages
+      .slice(-MAX_MESSAGES)
+      .filter((m: unknown) =>
+        m !== null &&
+        typeof m === 'object' &&
+        'role' in (m as object) &&
+        'content' in (m as object) &&
+        ['user', 'assistant'].includes((m as { role: string }).role) &&
+        typeof (m as { content: unknown }).content === 'string'
+      )
+      .map((m: { role: string; content: string }) => ({
+        role: m.role,
+        content: sanitize(m.content),
+      }))
+
     console.log('[chat] parsed messages count:', messages.length)
   } catch (e) {
     console.error('[chat] body parse error:', e)

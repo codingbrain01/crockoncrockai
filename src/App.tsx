@@ -7,6 +7,13 @@ interface Message {
 
 const DAILY_TOKEN_LIMIT = 500000
 
+function sanitizeInput(text: string): string {
+  return text
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // strip control chars, keep \t \n \r
+    .trim()
+    .slice(0, 4000) // max 4000 chars per message
+}
+
 function getVisitorId(): string {
   let id = localStorage.getItem('visitorId')
   if (!id) {
@@ -52,7 +59,7 @@ function App() {
   async function sendMessage() {
     if (!input.trim() || loading) return
 
-    const userMessage: Message = { role: 'user', content: input.trim() }
+    const userMessage: Message = { role: 'user', content: sanitizeInput(input) }
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
     setInput('')
