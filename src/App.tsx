@@ -257,7 +257,7 @@ function App() {
       )}
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+      <main className={`flex-1 px-4 py-6 space-y-4 ${messages.length > 0 ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center gap-3">
             <div className="w-16 h-16 rounded-full bg-indigo-500 flex items-center justify-center text-2xl font-bold">C</div>

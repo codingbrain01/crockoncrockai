@@ -1,6 +1,6 @@
 # CrockonCrockAI
 
-A personal AI chat assistant I built from scratch — fast, smart, and built especially for programming help. Powered by DeepSeek-R1 (70B) running on Groq's inference platform, hosted on Vercel.
+A personal AI chat assistant I built from scratch — fast, smart, and built especially for programming help. Powered by Llama 3.3 70B running on Groq's inference platform, hosted on Vercel.
 
 ---
 
@@ -9,10 +9,13 @@ A personal AI chat assistant I built from scratch — fast, smart, and built esp
 - **AI Chat Interface** — Clean, distraction-free dark UI for focused conversations
 - **Real-time Streaming** — Responses stream token by token as the AI generates them
 - **Programming-focused** — System prompt tuned for coding, debugging, and technical explanations
-- **Usage Tracker** — Live session counters for requests and tokens with progress bars
-- **Owner Mode** — Gear icon in the header lets me enter a secret token to bypass public rate limits
-- **Rate Limited for Public** — Visitors are limited to 30 requests/day to protect my API quota
-- **API Key Protected** — Key never touches the browser; all Groq calls go through a server-side Edge function
+- **Persistent Conversations** — Each user's conversation is saved in `localStorage` and survives page refreshes
+- **Usage Tracker** — Live counters for requests and tokens with progress bars, persisted per user
+- **Owner Mode** — Gear icon opens a login panel; owner gets unlimited requests and a separate persistent conversation
+- **Owner Badge** — Green "Owner" badge in the header when logged in, with a visible Logout button
+- **Rate Limited for Visitors** — Visitors are limited to 30 requests/day to protect the API quota
+- **API Key Protected** — Key never touches the browser; all Groq calls go through a server-side function
+- **Input Sanitization** — Messages are sanitized on both frontend and backend before being processed
 - **Keyboard Shortcuts** — `Enter` to send, `Shift+Enter` for a new line
 
 ---
@@ -26,8 +29,8 @@ A personal AI chat assistant I built from scratch — fast, smart, and built esp
 | Vite | 8 | Build tool and dev server |
 | Tailwind CSS | v4 | Styling |
 | Groq SDK | 1.1 | AI inference client |
-| DeepSeek-R1 (70B distill) | — | The AI model |
-| Vercel Edge Functions | — | Server-side API proxy |
+| Llama 3.3 70B | — | The AI model |
+| Vercel Serverless Functions | — | Server-side API proxy |
 
 ---
 
@@ -36,12 +39,12 @@ A personal AI chat assistant I built from scratch — fast, smart, and built esp
 ```
 crockoncrockai/
 ├── api/
-│   └── chat.ts         # Vercel Edge function — proxies Groq, handles rate limiting
+│   └── chat.ts         # Vercel serverless function — proxies Groq, rate limiting, sanitization
 ├── public/
 │   ├── favicon.svg
 │   └── icons.svg
 ├── src/
-│   ├── App.tsx         # Main chat UI, settings panel, usage tracker
+│   ├── App.tsx         # Main chat UI, owner mode, usage tracker, conversation persistence
 │   ├── main.tsx        # React entry point
 │   └── index.css       # Tailwind import
 ├── index.html          # App shell
@@ -58,18 +61,24 @@ crockoncrockai/
 ## How It Works
 
 ### Frontend (`src/App.tsx`)
+- Sanitizes input (strips control characters, caps at 4,000 chars) before sending
 - Sends `POST /api/chat` with the conversation history
-- If an owner token is set in `localStorage`, it's sent as the `x-owner-token` header
+- If an owner token is stored in `localStorage`, sends it as `x-owner-token` header
 - Reads the streaming response using the browser's `ReadableStream` API
-- Estimates token usage (~4 characters per token) and displays it in the header
-- Token and request counters are saved in `localStorage` — they persist across page refreshes for every user individually
+- Estimates token usage (~4 characters per token) and tracks it per user in `localStorage`
+- Owner and visitor conversations, request counts, and token counts are all stored separately
 
 ### Backend (`api/chat.ts`)
-- Runs as a **Vercel Edge Function**
-- Checks for the `x-owner-token` header — if it matches `OWNER_TOKEN` env var, skips rate limiting
+- Validates and sanitizes all incoming messages (strips control chars, caps at 4,000 chars, max 50 messages)
+- Checks `x-owner-token` header — if it matches `OWNER_TOKEN` env var, skips rate limiting
 - Otherwise enforces **30 requests per IP per day** using an in-memory map
 - Forwards the request to Groq using the server-side `GROQ_API_KEY`
 - Streams the response back to the browser as plain text
+
+### Conversation Persistence
+- **Owner** — conversation saved as `ownerMessages` in `localStorage`; logging out clears the screen but keeps it saved; logging back in restores it
+- **Visitors** — each browser gets a unique visitor ID on first visit; conversation saved as `visitorMessages_{id}`
+- **Counters** — requests and tokens tracked separately for owner (`ownerRequestsUsed`, `ownerTokensUsed`) and per visitor (`visitorRequestsUsed_{id}`, `visitorTokensUsed_{id}`)
 
 ---
 
@@ -78,7 +87,7 @@ crockoncrockai/
 ### Prerequisites
 - Node.js 18+
 - A free [Groq API key](https://console.groq.com)
-- Vercel CLI (`npm i -g vercel`) — required to run the Edge function locally
+- Vercel CLI (`npm i -g vercel`) — required to run the serverless function locally
 
 ### Steps
 
@@ -99,12 +108,12 @@ crockoncrockai/
    OWNER_TOKEN=your_secret_password_here
    ```
 
-4. **Start the dev server with Vercel CLI**
+4. **Start the dev server**
    ```bash
    vercel dev
    ```
 
-   > `vercel dev` is required (not `npm run dev`) because the app calls `/api/chat` which is a Vercel Edge function. The Vite dev server alone won't handle that route.
+   > `vercel dev` is required (not `npm run dev`) because the app calls `/api/chat` which is a Vercel serverless function. The Vite dev server alone won't handle that route.
 
 5. Open **http://localhost:3000**
 
@@ -126,15 +135,16 @@ crockoncrockai/
 
 ## Owner Access
 
-Public visitors are capped at **30 requests per day**. To use the app without limits:
+Public visitors are capped at **30 requests per day**. To use the app as owner:
 
-1. Click the **gear icon** (⚙) in the top-right corner of the header
-2. Enter the `OWNER_TOKEN` value you set in Vercel
-3. Click **Save**
+1. Click the **gear icon** (⚙) in the header
+2. Enter your `OWNER_TOKEN`
+3. Click **Login**
 
-The token is stored in `localStorage` — you only need to enter it once per browser. A green **"Owner token active"** message confirms it's working.
-
-To remove it, open the settings panel and click **Clear**.
+- A green **Owner** badge appears in the header next to the title
+- Click **Logout** (next to the badge) to log out — screen clears, conversation stays saved
+- Log back in to restore your conversation
+- Your request limit shows as **X / 1,000** instead of X / 30
 
 ---
 
@@ -147,7 +157,7 @@ To remove it, open the settings panel and click **Clear**.
 | Tokens per day | 500,000 | Midnight UTC |
 | Tokens per minute | 6,000 | Every 60 seconds |
 
-Public visitors are further limited to **30 requests/day per IP** by the serverless function. Each visitor's usage counter is tracked in their own browser `localStorage` and persists across page refreshes.
+Visitors are further capped at **30 requests/day per IP**. Each user's counters persist in their own browser across refreshes.
 
 ---
 
